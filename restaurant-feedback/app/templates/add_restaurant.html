@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Add Restaurant — I'll Have What She's Having{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <a href="{{ url_for('main.index') }}" class="back-link">&larr; Back</a>
+    <h1>Add a restaurant</h1>
+
+    <form method="post" action="{{ url_for('main.add_restaurant') }}" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="name">Restaurant name</label>
+        <input type="text" id="name" name="name" required placeholder="e.g. Joe's Pizza">
+
+        <label for="address">Address</label>
+        <input type="text" id="address" name="address" required placeholder="123 Main St, City, State">
+
+        <input type="hidden" id="lat" name="lat">
+        <input type="hidden" id="lng" name="lng">
+        <input type="hidden" id="place_id" name="place_id">
+
+        <button type="submit" class="btn btn-block">Add restaurant</button>
+    </form>
+</section>
+{% endblock %}

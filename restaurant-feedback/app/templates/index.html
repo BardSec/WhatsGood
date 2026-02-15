@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}I'll Have What She's Having — Discover Dishes You'll Love{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Don't guess. <em>Know</em> what to order.</h1>
+    <p class="hero-sub">Real feedback on real dishes from real people.</p>
+
+    <form class="search-box" action="{{ url_for('main.index') }}" method="get" autocomplete="off">
+        <input
+            type="text"
+            name="q"
+            id="search-input"
+            placeholder="Search restaurants by name or location..."
+            value="{{ query }}"
+            aria-label="Search restaurants"
+        >
+        <button type="submit" class="btn">Search</button>
+    </form>
+    <div id="search-results" class="search-dropdown" hidden></div>
+</section>
+
+<section class="restaurant-grid">
+    {% if restaurants %}
+        {% for r in restaurants %}
+        <a href="{{ url_for('main.restaurant_detail', restaurant_id=r.id) }}" class="restaurant-card">
+            <h3>{{ r.name }}</h3>
+            <p class="card-address">{{ r.address }}</p>
+            <div class="card-meta">
+                {% if r.avg_rating %}
+                    <span class="rating-badge">{{ r.avg_rating }} &#9733;</span>
+                {% endif %}
+                <span class="review-count">{{ r.review_count }} review{{ "s" if r.review_count != 1 }}</span>
+                <span class="dish-count">{{ r.dishes.count() }} dish{{ "es" if r.dishes.count() != 1 }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <p>No restaurants found{% if query %} for "{{ query }}"{% endif %}.</p>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.add_restaurant') }}" class="btn">Add one!</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn">Log in to add a restaurant</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

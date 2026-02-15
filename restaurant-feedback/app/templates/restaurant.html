@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ restaurant.name }} — I'll Have What She's Having{% endblock %}
+
+{% block content %}
+<section class="restaurant-header">
+    <a href="{{ url_for('main.index') }}" class="back-link">&larr; All restaurants</a>
+    <h1>{{ restaurant.name }}</h1>
+    <p class="restaurant-address">{{ restaurant.address }}</p>
+    {% if restaurant.avg_rating %}
+        <div class="restaurant-stats">
+            <span class="rating-badge rating-lg">{{ restaurant.avg_rating }} &#9733;</span>
+            <span>{{ restaurant.review_count }} review{{ "s" if restaurant.review_count != 1 }} across {{ dishes|length }} dish{{ "es" if dishes|length != 1 }}</span>
+        </div>
+    {% endif %}
+</section>
+
+{% if current_user.is_authenticated %}
+<section class="add-dish-section">
+    <h2>Add a dish</h2>
+    <form method="post" action="{{ url_for('main.add_dish', restaurant_id=restaurant.id) }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="name" placeholder="Dish name" required class="input-flex">
+        <input type="text" name="description" placeholder="Short description (optional)" class="input-flex">
+        <button type="submit" class="btn">Add dish</button>
+    </form>
+</section>
+{% endif %}
+
+<section class="dishes-section">
+    <h2>Menu items &amp; reviews</h2>
+
+    {% if dishes %}
+        {% for dish in dishes %}
+        <div class="dish-card" id="dish-{{ dish.id }}">
+            <div class="dish-header">
+                <h3>{{ dish.name }}</h3>
+                {% if dish.avg_rating %}
+                    <span class="rating-badge">{{ dish.avg_rating }} &#9733;</span>
+                {% endif %}
+            </div>
+            {% if dish.description %}
+                <p class="dish-desc">{{ dish.description }}</p>
+            {% endif %}
+
+            <div class="dish-meta">
+                <span>{{ dish.review_count }} review{{ "s" if dish.review_count != 1 }}</span>
+                {% if dish.recommendation_pct is not none %}
+                    <span class="recommend-badge">{{ dish.recommendation_pct }}% would order again</span>
+                {% endif %}
+            </div>
+
+            <!-- Existing reviews -->
+            {% set reviews = dish.reviews.order_by(none).all() %}
+            {% if reviews %}
+            <div class="review-list">
+                {% for review in reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <strong>{{ review.author.display_name }}</strong>
+                        <span class="stars">{{ "&#9733;" * review.rating }}{{ "&#9734;" * (5 - review.rating) }}</span>
+                        {% if review.would_recommend %}
+                            <span class="recommend-tag">Would order again</span>
+                        {% endif %}
+                    </div>
+                    {% if review.comment %}
+                        <p class="review-comment">{{ review.comment }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Review form -->
+            {% if current_user.is_authenticated %}
+                {% set user_review = dish.reviews.filter_by(user_id=current_user.id).first() %}
+                {% if user_review %}
+                <details class="review-form-wrap">
+                    <summary>Edit your review</summary>
+                    <form method="post" action="{{ url_for('main.edit_review', dish_id=dish.id) }}" class="review-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="star-input" data-rating="{{ user_review.rating }}">
+                            {% for i in range(1, 6) %}
+                            <label>
+                                <input type="radio" name="rating" value="{{ i }}" {{ "checked" if i == user_review.rating }}>
+                                <span class="star">&#9733;</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <textarea name="comment" placeholder="What did you think?">{{ user_review.comment }}</textarea>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="would_recommend" {{ "checked" if user_review.would_recommend }}>
+                            I'd order this again
+                        </label>
+                        <button type="submit" class="btn btn-sm">Update review</button>
+                    </form>
+                </details>
+                {% else %}
+                <details class="review-form-wrap">
+                    <summary>Write a review</summary>
+                    <form method="post" action="{{ url_for('main.add_review', dish_id=dish.id) }}" class="review-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="star-input" data-rating="0">
+                            {% for i in range(1, 6) %}
+                            <label>
+                                <input type="radio" name="rating" value="{{ i }}" required>
+                                <span class="star">&#9733;</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <textarea name="comment" placeholder="What did you think?"></textarea>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="would_recommend" checked>
+                            I'd order this again
+                        </label>
+                        <button type="submit" class="btn btn-sm">Submit review</button>
+                    </form>
+                </details>
+                {% endif %}
+            {% else %}
+                <p class="login-prompt"><a href="{{ url_for('auth.login') }}">Log in</a> to leave a review.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <p>No dishes yet.{% if current_user.is_authenticated %} Be the first to add one!{% endif %}</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
