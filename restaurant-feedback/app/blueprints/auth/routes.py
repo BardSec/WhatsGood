@@ -1,18 +1,8 @@
-from flask import (
-    Blueprint,
-    current_app,
-    flash,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import login_user, logout_user
 
-from app.models import User, db
-
-auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+from app.blueprints.auth import bp
+from app.services.auth_service import get_or_create_user, update_user_profile
 
 _oauth_registry = None
 
@@ -43,62 +33,49 @@ def _oidc_configured():
     )
 
 
-@auth_bp.route("/login")
+@bp.route("/login")
 def login():
     if _oidc_configured():
         oauth = _get_oauth()
         redirect_uri = url_for("auth.callback", _external=True)
         return oauth.oidc.authorize_redirect(redirect_uri)
-    # Fallback: show a simple demo-login form
     return render_template("login.html")
 
 
-@auth_bp.route("/login/demo", methods=["POST"])
+@bp.route("/login/demo", methods=["POST"])
 def demo_login():
-    """Quick demo login — no real auth, just picks/creates a user by email."""
+    """Dev login — email + name, no password."""
     email = request.form.get("email", "").strip().lower()
     name = request.form.get("name", "").strip()
     if not email or not name:
         flash("Email and name are required.", "error")
         return redirect(url_for("auth.login"))
 
-    user = User.query.filter_by(email=email).first()
-    if user is None:
-        user = User(email=email, display_name=name)
-        db.session.add(user)
-        db.session.commit()
+    user = get_or_create_user(email, display_name=name)
     login_user(user)
     flash(f"Welcome, {user.display_name}!", "success")
     return redirect(url_for("main.index"))
 
 
-@auth_bp.route("/callback")
+@bp.route("/callback")
 def callback():
     oauth = _get_oauth()
     token = oauth.oidc.authorize_access_token()
     userinfo = token.get("userinfo") or oauth.oidc.userinfo()
 
     email = userinfo["email"]
-    user = User.query.filter_by(email=email).first()
-    if user is None:
-        user = User(
-            email=email,
-            display_name=userinfo.get("name", email.split("@")[0]),
-            avatar_url=userinfo.get("picture", ""),
-        )
-        db.session.add(user)
-        db.session.commit()
-    else:
-        user.display_name = userinfo.get("name", user.display_name)
-        user.avatar_url = userinfo.get("picture", user.avatar_url)
-        db.session.commit()
+    name = userinfo.get("name", email.split("@")[0])
+    avatar = userinfo.get("picture", "")
+
+    user = get_or_create_user(email, display_name=name, avatar_url=avatar)
+    update_user_profile(user, display_name=name, avatar_url=avatar)
 
     login_user(user)
     flash(f"Welcome, {user.display_name}!", "success")
     return redirect(url_for("main.index"))
 
 
-@auth_bp.route("/logout")
+@bp.route("/logout")
 def logout():
     logout_user()
     session.clear()

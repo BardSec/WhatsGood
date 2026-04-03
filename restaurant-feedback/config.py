@@ -1,19 +1,19 @@
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{os.path.join(basedir, 'instance', 'app.db')}"
+        "DATABASE_URL",
+        "postgresql://whatsgood:whatsgood@db:5432/whatsgood",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # OIDC / OAuth2 configuration
+    # OIDC / OAuth2 (leave unset for dev login fallback)
     OIDC_PROVIDER_URL = os.environ.get("OIDC_PROVIDER_URL", "")
     OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "")
     OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET", "")
-
-    # Google Places API (optional — app works with mock data without it)
-    GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")

@@ -1,6 +1,12 @@
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 instance/
 .env
 *.db
+*.sqlite3
 .venv/
+venv/
+*.log
+.DS_Store
+migrations/versions/__pycache__/

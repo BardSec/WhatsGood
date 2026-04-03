@@ -1,16 +1,28 @@
 services:
-  web:
+  app:
     build: .
     ports:
-      - "5000:5000"
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
     environment:
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-in-production}
-      - OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL:-}
-      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
-      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
-      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-}
+      POSTGRES_USER: whatsgood
+      POSTGRES_PASSWORD: whatsgood
+      POSTGRES_DB: whatsgood
     volumes:
-      - db-data:/app/instance
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whatsgood"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
-  db-data:
+  pgdata:
